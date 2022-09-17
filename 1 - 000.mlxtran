@@ -1,0 +1,92 @@
+<DATAFILE>
+
+[FILEINFO]
+file='../fullInitialMonolix_c2c3.csv'
+delimiter = comma
+header = {weeks_post_infection, animal_id, Y_orig, age, type, T_init, V_init, days_post_infection, Y, cens}
+
+[CONTENT]
+animal_id = {use=identifier}
+age = {use=covariate, type=categorical}
+type = {use=observationtype}
+T_init = {use=regressor}
+days_post_infection = {use=time}
+Y = {use=observation, name={y1, y2}, yname={'1', '2'}, type={continuous, continuous}}
+cens = {use=censored}
+
+<MODEL>
+
+[COVARIATE]
+input = age
+
+age = {type=categorical, categories={adult, infant}}
+
+[INDIVIDUAL]
+input = {beta_pop, omega_beta, delta_pop, omega_delta, n_pop, omega_n, rho_pop, omega_rho, V0_pop, omega_V0, lambda_pop, omega_lambda, age, beta_beta_age_infant, beta_rho_age_infant, beta_n_age_infant, beta_delta_age_infant, beta_V0_age_infant, beta_lambda_age_infant}
+
+age = {type=categorical, categories={adult, infant}}
+
+DEFINITION:
+beta = {distribution=logNormal, typical=beta_pop, covariate=age, coefficient={0, beta_beta_age_infant}, sd=omega_beta}
+delta = {distribution=logNormal, typical=delta_pop, covariate=age, coefficient={0, beta_delta_age_infant}, sd=omega_delta}
+n = {distribution=logNormal, typical=n_pop, covariate=age, coefficient={0, beta_n_age_infant}, sd=omega_n}
+rho = {distribution=logNormal, typical=rho_pop, covariate=age, coefficient={0, beta_rho_age_infant}, sd=omega_rho}
+V0 = {distribution=logNormal, typical=V0_pop, covariate=age, coefficient={0, beta_V0_age_infant}, sd=omega_V0}
+lambda = {distribution=logNormal, typical=lambda_pop, covariate=age, coefficient={0, beta_lambda_age_infant}, sd=omega_lambda}
+
+[LONGITUDINAL]
+input = {a_}
+
+file = '1 - 000.txt'
+
+DEFINITION:
+y1 = {distribution=normal, prediction=LVL, errorModel=constant(a_)}
+
+<FIT>
+data = y1
+model = y1
+
+<PARAMETER>
+V0_pop = {value=30, method=MLE}
+a_ = {value=1, method=MLE}
+beta_V0_age_infant = {value=0, method=MLE}
+beta_beta_age_infant = {value=0, method=MLE}
+beta_delta_age_infant = {value=0, method=MLE}
+beta_lambda_age_infant = {value=0, method=MLE}
+beta_n_age_infant = {value=0, method=MLE}
+beta_pop = {value=0.000000001, method=MLE}
+beta_rho_age_infant = {value=0, method=MLE}
+delta_pop = {value=0.5, method=MLE}
+lambda_pop = {value=1, method=MLE}
+n_pop = {value=132000000, method=MLE}
+omega_V0 = {value=1, method=MLE}
+omega_beta = {value=1, method=MLE}
+omega_delta = {value=1, method=MLE}
+omega_lambda = {value=1, method=MLE}
+omega_n = {value=1, method=MLE}
+omega_rho = {value=1, method=MLE}
+rho_pop = {value=0.01, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode })
+fim(method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+plotResult(method = {indfits, parameterdistribution, covariancemodeldiagnosis, covariatemodeldiagnosis, obspred, vpc, residualsscatter, residualsdistribution, randomeffects, saemresults })
+
+[SETTINGS]
+GLOBAL:
+exportpath = '1 - 000'
+
+POPULATION:
+exploratoryiterations = 1000
+simulatedannealingiterations = 1000
+
+LL:
+methodll = optimized
+
+INDIVIDUAL:
+nbsimulatedparameters = 100
+
