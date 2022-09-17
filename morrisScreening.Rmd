@@ -1,0 +1,101 @@
+---
+title: "Viral Dynamics Plots"
+author: "Julian Sass"
+date: "11/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(scales)
+library(gtools)
+library(deSolve)
+library(gridExtra)
+library(ODEsensitivity)
+library(tidyr)
+library(latex2exp)
+```
+
+```{r}
+model00<-function(t, state, parameters) {
+  with(as.list(c(state, parameters)),{
+    # rate of change
+    dX = lambda + rho*X*(1-(X+I)/(Tmax))-beta*X*V
+    dI = beta*X*V - delta*I
+    dV = n*delta*I - 38*V
+    
+    # return the rate of change
+    list(c(dX, dI, dV))
+  }) # end with(as.list ...
+}
+
+data <- read.csv(file = "C:/Users/scama/Dropbox/2019_Summer_Project_Rebound/code/summer-2019/Infants&adults/populationParametersBest.csv", header = TRUE, sep = ",",fileEncoding = 'UTF-8-BOM')
+xtable::xtable(data)
+```
+
+```{r}
+modelPars <- c("beta", "rho", "delta", "n", "lambda","Tmax")
+modelInf <- c(data$adult[1] - data$adultSD[1],data$adult[2] - data$adultSD[2],data$adult[3] - data$adultSD[3],data$adult[4] - data$adultSD[4],data$adult[6] - data$adultSD[6],1000)
+modelSup <- c(data$adult[1] + data$adultSD[1],data$adult[2] + data$adultSD[2],data$adult[3] + data$adultSD[3],data$adult[4] + data$adultSD[4],data$adult[6] + data$adultSD[6],1000)
+modelInit <- c(X = 1000, I = 0,  V = data$adult[5])
+modelTimes <- seq(0, 16*7, by = 0.1)[-1]
+```
+
+```{r}
+set.seed(1874)
+LVres_morris = ODEmorris(mod = model00, pars = modelPars, state_init = modelInit
+                         , times = modelTimes, binf = modelInf, bsup = modelSup
+                         )
+```
+
+```{r}
+plot(LVres_morris,state = "V")
+```
+
+```{r}
+modelInfInfant <- c(data$infant[1] - data$infantSD[1],data$infant[2] - data$infantSD[2],data$infant[3] - data$infantSD[3],data$infant[4] - data$infantSD[4],data$infant[6] - data$infantSD[6],1700)
+modelSupInfant <- c(data$infant[1] + data$infantSD[1],data$infant[2] + data$infantSD[2],data$infant[3] + data$infantSD[3],data$infant[4] + data$infantSD[4],data$infant[6] + data$infantSD[6],1700)
+modelInitInfant <- c(X = 1700, I = 0,  V = data$infant[5])
+```
+
+```{r}
+set.seed(1618)
+LVres_morris_infant = ODEmorris(mod = model00, pars = modelPars, state_init = modelInitInfant
+                         , times = modelTimes, binf = modelInfInfant, bsup = modelSupInfant
+                         )
+```
+
+```{r}
+plot(LVres_morris_infant,state = "V")
+```
+
+```{r}
+morrisViralAdult <- as.data.frame(t(LVres_morris[["V"]]))
+morrisViralInfant <- as.data.frame(t(LVres_morris_infant[["V"]]))
+
+morrisViralAdult$age <- "Adult"
+morrisViralInfant$age <- "Infant"
+
+morrisViral <- rbind(morrisViralAdult, morrisViralInfant)
+morrisViralMean <- morrisViral[,c("time","mu.star_beta","mu.star_rho","mu.star_delta","mu.star_n","mu.star_lambda","age")]
+morrisViralSD <- morrisViral[,c("time","sigma_beta","sigma_rho","sigma_delta","sigma_n","sigma_lambda","age")]
+
+morrisViralMean <- gather(morrisViralMean, variable, mu_star, mu.star_beta:mu.star_lambda)
+morrisViralSD <- gather(morrisViralSD, variable, sigma, sigma_beta:sigma_lambda)
+morrisViralSD$cv <- morrisViralSD$sigma/morrisViralMean$mu_star
+```
+
+```{r}
+ggplot(morrisViralMean, aes(time,mu_star,color=variable)) + geom_line() + facet_wrap(~age) + xlab('Time (Days)') + ylab(TeX("$\\mu^*$")) + scale_color_discrete(name = "Variable", labels = c(expression(beta), expression(delta), expression(lambda), expression(N), expression(rho)))+scale_y_continuous(trans='log10')
+```
+
+
