@@ -1,2 +1,10 @@
 .mlxtran files are Monolix files
 .txt files with the same name are ODE model code files
+
+File names correspond to whether lambda (CD4+ T Cell production rate from the thymys), 
+Tmax (pseudomaximum value of the CD4+ T cell count), and c (viral clearance) are time 
+varying, 
+
+So 101 has lambda and c as time varying parameters.
+
+File c2c3 contains all adult data including additional infant data.
